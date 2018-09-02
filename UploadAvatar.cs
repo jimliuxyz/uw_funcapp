@@ -95,7 +95,7 @@ namespace UwFuncapp
 
             var randomId = Regex.Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "[/]", "-");
             var fileName_thumb = randomId + ".jpg";
-            var imgUrl = "https://uwdefstorage.blob.core.windows.net/avatar/200/test" + fileName_thumb;
+            var imgUrl = "https://uwdefstorage.blob.core.windows.net/avatar/200/" + fileName_thumb;
             // log.Info("fileName_thumb : " + fileName_thumb);
             try
             {
