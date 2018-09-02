@@ -38,8 +38,7 @@ namespace UwFuncapp
 
         public IActionResult ToActionResult()
         {
-            // return new OkObjectResult(this.ToString());
-            return result==null ? new OkObjectResult(this.ToString()) : new BadRequestObjectResult(this.ToString()) as IActionResult;
+            return error==null ? new OkObjectResult(this.ToString()) : new BadRequestObjectResult(this.ToString()) as IActionResult;
         }
 
         public static JsonRPC InternalError(int id)
