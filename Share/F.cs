@@ -2,6 +2,8 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
 
 namespace UwFuncapp
 {
@@ -17,6 +19,7 @@ namespace UwFuncapp
             byte[] crypto = sha256.ComputeHash(source);
             return Convert.ToBase64String(crypto);
         }
+
     }
 }
 

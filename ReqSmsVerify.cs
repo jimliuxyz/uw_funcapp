@@ -14,6 +14,7 @@ using Microsoft.Azure.Documents.Client;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
+using UW.Models.Collections;
 
 namespace UwFuncapp
 {
@@ -25,6 +26,9 @@ namespace UwFuncapp
             int jsonId = 0;
             try
             {
+                //todo : do this to recover DB after DB reset. remove this while release
+                DB.InitDB();
+
                 string requestBody = new StreamReader(req.Body).ReadToEnd();
                 JsonRpcQuery jreq = JsonConvert.DeserializeObject<JsonRpcQuery>(requestBody);
                 jsonId = jreq.id;
