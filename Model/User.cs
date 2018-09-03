@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-public enum CURRENCY_NAME { cny, usd, bitcoin, ether }
+public enum CURRENCY_NAME { CNY, USD, BTC, ETH }
 
 public class User
 {

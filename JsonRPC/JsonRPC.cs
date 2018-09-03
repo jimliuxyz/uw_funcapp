@@ -10,7 +10,17 @@ using Microsoft.Extensions.Logging;
 
 namespace UwFuncapp
 {
-    public class JsonRPC
+    class JsonRpcQuery
+    {
+        public string jsonrpc;
+        public string method;
+        public int id;
+
+        [JsonProperty(PropertyName = "params")]
+        public dynamic params_;
+    }
+
+    public class JsonRpcRes
     {
         [JsonProperty]
         private string jsonrpc = "2.0";
@@ -22,9 +32,9 @@ namespace UwFuncapp
         object result = null;
 
         [JsonProperty]
-        JsonRPCError error = null;
+        JsonRpcError error = null;
 
-        private JsonRPC(int id, object result = null, JsonRPCError error = null)
+        private JsonRpcRes(int id, object result = null, JsonRpcError error = null)
         {
             this.id = id;
             this.result = result;
@@ -38,29 +48,29 @@ namespace UwFuncapp
 
         public IActionResult ToActionResult()
         {
-            return error==null ? new OkObjectResult(this.ToString()) : new BadRequestObjectResult(this.ToString()) as IActionResult;
+            return error == null ? new OkObjectResult(this.ToString()) : new BadRequestObjectResult(this.ToString()) as IActionResult;
         }
 
-        public static JsonRPC InternalError(int id)
+        public static JsonRpcRes InternalError(int id)
         {
-            return new JsonRPC(id, error: new JsonRPCError(-32603, "Internal error"));
+            return new JsonRpcRes(id, error: new JsonRpcError(-32603, "Internal error"));
         }
-        public static JsonRPC Unauthorized(int id)
+        public static JsonRpcRes Unauthorized(int id)
         {
-            return new JsonRPC(id, error: new JsonRPCError(-32600, "Unauthorized"));
+            return new JsonRpcRes(id, error: new JsonRpcError(-32600, "Unauthorized"));
         }
-        public static JsonRPC InvalidRequest(int id, string message = "Invalid Request")
+        public static JsonRpcRes InvalidRequest(int id, string message = "Invalid Request")
         {
-            return new JsonRPC(id, error: new JsonRPCError(-32600, message));
+            return new JsonRpcRes(id, error: new JsonRpcError(-32600, message));
         }
 
-        public static JsonRPC Ok(int id, object result = null)
+        public static JsonRpcRes Ok(int id, object result = null)
         {
-            return new JsonRPC(id, result);
+            return new JsonRpcRes(id, result);
         }
     }
 
-    public class JsonRPCError
+    public class JsonRpcError
     {
         [JsonProperty]
         private int code = 0;
@@ -68,7 +78,7 @@ namespace UwFuncapp
         [JsonProperty]
         private string message = null;
 
-        public JsonRPCError(int code, string message)
+        public JsonRpcError(int code, string message)
         {
             this.code = code;
             this.message = message;

@@ -29,39 +29,11 @@ namespace UwFuncapp
 {
     public static class UploadAvatar
     {
-        static string SMS_SALT = "e^26rYS`}:~%E4`";
-        static string ACCOUNT_SID = "AC869aecada546a05c62ba362000a62f2f";
-        static string AUTH_TOKEN = "88cfe51f0483a59d173589667e12648e";
-
-        static string DB_URI = "https://uwcosmos.documents.azure.com:443/";
-        static string DB_KEY = "ImS3ZxaO7N7hFBFdSJHzVkOVC22tZlibbxRcgOQAlpKKWLvN2PDfwrovIatjFW4v0Iiw9Tv5jtED6reWSUYgLw==";
-
-        static string DB_NAME = "UWallet";
-        static string DB_COL_USER = "User";
-
-        static string blobAccountName = "uwdefstorage";
-        static string blobAccountKey = "QNZX0smkMLWeCBF3E8IxaRpigBYRjtB9446Otx81JGMP3DdHZADxLf6EWAQg/uZ2Gjdflt5o+FGWcuxMplwYsg==";
         static string blobRoot = "avatar";
         static int THUMB_SIZE = 200;
         static int MAX_SIZE = 1 * 1000 * 1000;
-        static string JWT_SECRET = "F=a[s-vFRv(Rn~0MjXF!";
 
-        static DocumentClient client;
-        static Uri DB_URI_USER;
-        static UploadAvatar()
-        {
-            client = new DocumentClient(new Uri(DB_URI), DB_KEY);
-
-            DB_URI_USER = UriFactory.CreateDocumentCollectionUri(DB_NAME, DB_COL_USER);
-        }
-
-        public static string Hash(string context)
-        {
-            SHA256 sha256 = new SHA256CryptoServiceProvider();
-            byte[] source = Encoding.Default.GetBytes(context + SMS_SALT);
-            byte[] crypto = sha256.ComputeHash(source);
-            return Convert.ToBase64String(crypto);
-        }
+        static DocumentClient client = R.client;
 
         [FunctionName("uploadAvatar")]
         public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequestMessage req, ILogger log)
@@ -75,11 +47,11 @@ namespace UwFuncapp
                 //validate token
                 var token = req.Headers?.Authorization?.ToString()?.Replace("Bearer ", "");
                 // log.Info("token : " + token);
-                ClaimsPrincipal principle = GetPrincipal(token, log);
+                ClaimsPrincipal principle = JwtValidator.GetPrincipal(token, log);
 
                 var identity = principle.Identity as ClaimsIdentity;
                 if (!identity.IsAuthenticated)
-                    return JsonRPC.Unauthorized(jsonId).ToActionResult();
+                    return JsonRpcRes.Unauthorized(jsonId).ToActionResult();
 
                 userId = identity.FindFirst("userId")?.Value;
                 log.LogInformation("userId : " + userId);
@@ -89,13 +61,13 @@ namespace UwFuncapp
             catch (Exception e)
             {
                 log.LogInformation(e.ToString());
-                return JsonRPC.Unauthorized(jsonId).ToActionResult();
+                return JsonRpcRes.Unauthorized(jsonId).ToActionResult();
             }
 
 
             var randomId = Regex.Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "[/]", "-");
             var fileName_thumb = randomId + ".jpg";
-            var imgUrl = "https://uwdefstorage.blob.core.windows.net/avatar/200/" + fileName_thumb;
+            var imgUrl = "https://" + R.BLOB_NAME + ".blob.core.windows.net/" + blobRoot + "/200/" + fileName_thumb;
             // log.Info("fileName_thumb : " + fileName_thumb);
             try
             {
@@ -112,7 +84,7 @@ namespace UwFuncapp
                 log.LogInformation("fileLength:" + fileLength);
 
                 if (fileLength <= 0 || fileLength > MAX_SIZE)
-                    return JsonRPC.InvalidRequest(jsonId, "file is too large").ToActionResult();
+                    return JsonRpcRes.InvalidRequest(jsonId, "file is too large").ToActionResult();
 
                 using (var fileStream = new MemoryStream(fileData))
                 {
@@ -138,10 +110,9 @@ namespace UwFuncapp
                     user.avatar = imgUrl;
                     await updateUser(user, log);
                 }
-                return JsonRPC.Ok(jsonId, new
+                return JsonRpcRes.Ok(jsonId, new
                 {
-                    statusCode = 200,
-                    result = imgUrl
+                    url = imgUrl
                 }).ToActionResult();
             }
             catch (Exception e)
@@ -149,37 +120,7 @@ namespace UwFuncapp
                 log.LogInformation(e.ToString());
             }
             // return InternalError for any not expected
-            return JsonRPC.InternalError(jsonId).ToActionResult();
-        }
-
-        public static ClaimsPrincipal GetPrincipal(string token, ILogger log)
-        {
-            try
-            {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
-
-                if (jwtToken == null)
-                    return null;
-
-                // var key = Convert.FromBase64String(TOKEN_SECRET);
-                var key = Encoding.UTF8.GetBytes(JWT_SECRET);
-                var validationParameters = new TokenValidationParameters()
-                {
-                    RequireExpirationTime = false,
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    IssuerSigningKey = new SymmetricSecurityKey(key)
-                };
-
-                SecurityToken securityToken;
-                return tokenHandler.ValidateToken(token, validationParameters, out securityToken);
-            }
-            catch (Exception e)
-            {
-                log.LogInformation(e.ToString());
-                return null;
-            }
+            return JsonRpcRes.InternalError(jsonId).ToActionResult();
         }
 
         private async static Task CreateBlobImage(string folder, string name, MemoryStream data, ILogger log)
@@ -190,10 +131,7 @@ namespace UwFuncapp
             CloudBlobContainer container;
             CloudBlockBlob blob;
 
-            // blobAccountName = ConfigurationManager.AppSettings["CyotekStorageAccountName"];
-            // blobAccountKey = ConfigurationManager.AppSettings["CyotekStorageAccessKey"];
-
-            connectionString = "DefaultEndpointsProtocol=https;AccountName=" + blobAccountName + ";AccountKey=" + blobAccountKey + ";EndpointSuffix=core.windows.net";
+            connectionString = "DefaultEndpointsProtocol=https;AccountName=" + R.BLOB_NAME + ";AccountKey=" + R.BLOB_KEY + ";EndpointSuffix=core.windows.net";
             storageAccount = CloudStorageAccount.Parse(connectionString);
 
             //get or create blob container
@@ -219,7 +157,7 @@ namespace UwFuncapp
         {
             try
             {
-                var dq = client.CreateDocumentQuery<User>(DB_URI_USER);
+                var dq = client.CreateDocumentQuery<User>(R.DB_URI_USER);
                 var result = from c in dq where c.userId == userId select c;
                 return result.ToList().First();
             }
@@ -233,7 +171,7 @@ namespace UwFuncapp
         {
             try
             {
-                await client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(DB_NAME, DB_COL_USER, user.userId), user);
+                await client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(R.DB_NAME, R.DB_COL_USER, user.userId), user);
             }
             catch (Exception e)
             {
