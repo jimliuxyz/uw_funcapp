@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 using UW.Models.Collections;
+using UW;
 
 namespace UwFuncapp
 {
@@ -47,22 +48,30 @@ namespace UwFuncapp
                 SmsPasscode data = null;
                 if (result.Count() > 0)
                 {
-                    //continue from old record
+                    //continue from old sms record
                     data = result.ToList().First();
-                    data.passcode = F.Hash(passcode);
 
-                    //todo : 每次紀錄保留60分鐘(ttl)
-                    //todo : 每60秒允許發一次簡訊 最多3次
-                    //todo : 每次簡訊 只允許驗證3次
-                    //todo : 位數調至6位
+                    if (data.resendCount >= 3)
+                        return JsonRpcRes.Bad(jsonId, RPCERR.SMS_RESEND_EXCEEDED).ToActionResult();
+
+                    //update sms record
+                    data.passcode = F.Hash(passcode);
+                    data.resendCount++;
+                    data.verifyCount = 0;
+                    data.verifyAvailTime = DateTime.UtcNow.AddMinutes(10);
+
                     await client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(R.DB_NAME, R.DB_COL_SMSPASSCODE, data.id), data);
                 }
                 else
                 {
+                    //create new sms record
                     data = new SmsPasscode
                     {
                         phoneno = F.Hash(phoneno),
-                        passcode = F.Hash(phoneno + passcode)
+                        passcode = F.Hash(phoneno + passcode),
+                        resendCount = 1,
+                        verifyCount = 0,
+                        verifyAvailTime = DateTime.UtcNow.AddMinutes(10)
                     };
                     await client.CreateDocumentAsync(R.DB_URI_SMSPASSCODE, data);
                 }
@@ -74,7 +83,10 @@ namespace UwFuncapp
                     "+" + phoneno,
                     "验证码(Passcode):" + passcode);
 
-                return JsonRpcRes.Ok(jsonId).ToActionResult();
+                return JsonRpcRes.Ok(jsonId, new
+                {
+                    resendCount = data.resendCount
+                }).ToActionResult();
             }
             catch (System.Exception e)
             {

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
+using UW;
 
 namespace UwFuncapp
 {
@@ -46,9 +47,13 @@ namespace UwFuncapp
             return JsonConvert.SerializeObject(this, Formatting.Indented);
         }
 
-        public IActionResult ToActionResult()
+        // public IActionResult ToActionResult()
+        // {
+        //     return error == null ? new OkObjectResult(this.ToString()) : new BadRequestObjectResult(this.ToString()) as IActionResult;
+        // }
+        public JsonResult ToActionResult()
         {
-            return error == null ? new OkObjectResult(this.ToString()) : new BadRequestObjectResult(this.ToString()) as IActionResult;
+            return new JsonResult(this);
         }
 
         public static JsonRpcRes InternalError(int id)
@@ -67,6 +72,11 @@ namespace UwFuncapp
         public static JsonRpcRes Ok(int id, object result = null)
         {
             return new JsonRpcRes(id, result);
+        }
+
+        public static JsonRpcRes Bad(int id, RPCERR err)
+        {
+            return new JsonRpcRes(id, error: new JsonRpcError(err.code, err.msg));
         }
     }
 
