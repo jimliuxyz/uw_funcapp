@@ -30,6 +30,12 @@ namespace UwFuncapp
         //balance
         private static string COL_BALANCE = typeof(Balance).Name;
         private static Uri URI_BALANCE = UriFactory.CreateDocumentCollectionUri(R.DB_NAME, COL_BALANCE);
+
+
+        //receipts
+        private static string COL_TXRECEIPT = typeof(TxReceipt).Name;
+        private static Uri URI_TXRECEIPT = UriFactory.CreateDocumentCollectionUri(R.DB_NAME, COL_TXRECEIPT);
+
         public static void InitDB()
         {
             var client = R.client;
@@ -47,6 +53,8 @@ namespace UwFuncapp
                                 new DocumentCollection { Id = COL_CONTACT }, defReqOpts).Wait();
             client.CreateDocumentCollectionIfNotExistsAsync(URI_DB,
                                 new DocumentCollection { Id = COL_BALANCE }, defReqOpts).Wait();
+            client.CreateDocumentCollectionIfNotExistsAsync(URI_DB,
+                                new DocumentCollection { Id = COL_TXRECEIPT }, defReqOpts).Wait();
         }
     }
 }
