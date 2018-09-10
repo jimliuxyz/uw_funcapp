@@ -55,7 +55,7 @@ namespace UwFuncapp
                         return JsonRpcRes.Bad(jsonId, RPCERR.SMS_RESEND_EXCEEDED).ToActionResult();
 
                     //update sms record
-                    data.passcode = F.Hash(passcode);
+                    data.passcode = F.Hash(phoneno + passcode);
                     data.resendCount++;
                     data.verifyCount = 0;
                     data.verifyAvailTime = DateTime.UtcNow.AddMinutes(10);
